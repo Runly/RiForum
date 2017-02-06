@@ -1,3 +1,5 @@
+# coding=UTF-8
+
 # 用户权限
 VISITORS = 0
 USER = 1

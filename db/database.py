@@ -1,4 +1,5 @@
 # coding=UTF-8
+
 from sqlalchemy import Column, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -130,7 +131,7 @@ class Entries(Base):
 
 # 评论
 class Comment(Base):
-    __tableName__ = 'comment'
+    __tablename__ = 'comment'
     id = Column(Integer, primary_key=True)
     content = Column(String, nullable=False)  # 评论内容
     plate_id = Column(Integer, nullable=False)  # 板块id
@@ -197,6 +198,7 @@ class Like(Base):
 
 # 版主
 class PlateMaster(Base):
+    __tablename__ = 'platemaster'
     id = Column(Integer, primary_key=True)
     uid = Column(Integer, nullable=False)
     uname = Column(String, nullable=False)
@@ -229,5 +231,5 @@ class Response(object):
         self.dateline = dateline
 
 
-engine = create_engine('sqlite:////home/ranly/riforum.db')
+engine = create_engine('sqlite:////home/ranly/riforum_db/riforum.db')
 DbSession = sessionmaker(bind=engine)

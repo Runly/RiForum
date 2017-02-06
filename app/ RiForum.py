@@ -169,7 +169,18 @@ def release():
 
 @app.route('/recommend', methods=['GET', 'POST'])
 def recommend():
-    pass
+    entry_list = []
+    r = db_session.query(Entries).filter(Entries.id > 0).count()
+    _sum = 0
+    for i in range(20):
+        if r == 0 or _sum >= r:
+            break
+        entry = db_session.query(Entries).filter(Entries.id == i+1).one()
+        entry_list.append(entry.to_json())
+        _sum += 1
+
+    response = Response(data=entry_list, message='successfully', code='1', dateline=long(time.time()))
+    return json.dumps(response, default=lambda o: o.__dict__)
 
 
 if __name__ == '__main__':
