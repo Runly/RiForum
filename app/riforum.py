@@ -1,8 +1,8 @@
 import json
 import time
-from db.database import *
+from database import User, init_db, DbSession, Response, Entries
 from flask import Flask, request
-from utils.md5 import *
+from md5 import to_md5
 
 app = Flask(__name__)
 app.config.from_object('config')
@@ -90,7 +90,7 @@ def login():
             if email is not None:
                 user = db_session.query(User).filter(User.email == email).one()
                 if user is not None:
-                    token = md5(user.password + str(long(time.time())))
+                    token = to_md5(user.password + str(long(time.time())))
                     user.token = token
                     db_session.commit()
                     response = Response(data={'uid': user.id, 'token': token}, code='1',
@@ -101,7 +101,7 @@ def login():
             else:
                 user = db_session.query(User).filter(User.phone == phone).one()
                 if user is not None:
-                    token = md5(user.password + str(long(time.time())))
+                    token = to_md5(user.password + str(long(time.time())))
                     user.token = token
                     db_session.commit()
                     response = Response(data={'uid': user.id, 'token': token}, code='1',
