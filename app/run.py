@@ -1,8 +1,12 @@
+# coding=UTF-8
+
 import json
 import time
-from database import User, init_db, DbSession, Response, Entries
+
+from utils.md5 import to_md5
 from flask import Flask, request
-from md5 import to_md5
+
+from database.db import User, init_db, DbSession, Response, Entries
 
 app = Flask(__name__)
 app.config.from_object('config')
@@ -23,6 +27,15 @@ def teardown_request(exception=None):
         db_session.close()
 
 
+def str_is_empty(a_str):
+    if a_str is None:
+        return True
+    elif len(a_str) == 0:
+        return True
+    else:
+        return False
+
+
 @app.route('/sign_in', methods=['POST'])
 def sign_in():
     error = None
@@ -40,28 +53,28 @@ def sign_in():
         if 'name' in json.loads(request.get_data()).keys():
             uname = json.loads(request.get_data())['name']
 
-        if email is None and phone is None:
-            error = 'email and phone can not be empty at the same time'
-        elif password is None and uname is None:
-            error = 'password and name can not be empty'
+        if str_is_empty(email) and str_is_empty(phone):
+            error = '邮箱或手机号不能为空'
+        elif str_is_empty(password) or str_is_empty(uname):
+            error = '密码和昵称不能为空'
         else:
             user = User(password=password, name=uname, time=long(time.time()))
             if email is not None:
                 if db_session.query(User.email).filter(User.email == email).scalar() is not None:
-                    response = Response(code='0', message='email has been already signed in',
+                    response = Response(code='0', message='邮箱已经被注册',
                                         dateline=long(time.time()))
                     return json.dumps(response, default=lambda o: o.__dict__)
                 user.email = email
             else:
                 if db_session.query(User.phone).filter(User.phone == phone).scalar() is not None:
-                    response = Response(code='0', message='phone has been already signed in',
+                    response = Response(code='0', message='手机号已经被注册',
                                         dateline=long(time.time()))
                     return json.dumps(response, default=lambda o: o.__dict__)
                 user.phone = phone
 
             db_session.add(user)
             db_session.commit()
-            response = Response(data=user.to_json(), message='sign in successfully', code='1',
+            response = Response(data=user.to_json(), message='登陆成功', code='1',
                                 dateline=long(time.time()))
             return json.dumps(response, default=lambda o: o.__dict__)
 

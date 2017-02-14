@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="d0227939-c139-4f13-901c-66f0fb78361c" name="server" url="http://ranly.top">
+        <fileTransfer host="ranly.top" port="22" privateKey="$USER_HOME$/.ssh/id_rsa" rootFolder="/root" accessType="SFTP" keyPair="true">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" />
+          </advancedOptions>
+          <option name="port" value="22" />
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>

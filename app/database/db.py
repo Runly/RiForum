@@ -3,7 +3,10 @@
 from sqlalchemy import Column, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from permissions import *
+import sys
+sys.path.append("..")
+from utils.permissions import *
+
 
 Base = declarative_base()
 
