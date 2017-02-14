@@ -95,33 +95,34 @@ def login():
             phone = json.loads(request.get_data())['phone']
         if 'password' in json.loads(request.get_data()).keys():
             password = json.loads(request.get_data())['password']
+
         if email is None and phone is None:
-            error = 'email and phone can not be empty at the same time'
+            error = '账号不能为空'
         elif password is None:
-            error = 'password can not be empty'
+            error = '密码不能为空'
         else:
             if email is not None:
-                user = db_session.query(User).filter(User.email == email).one()
-                if user is not None:
+                if db_session.query(User).filter(User.email == email).scalar() is not None:
+                    user = db_session.query(User).filter(User.email == email).one()
                     token = to_md5(user.password + str(long(time.time())))
                     user.token = token
                     db_session.commit()
                     response = Response(data={'uid': user.id, 'token': token}, code='1',
-                                        message='login successfully', dateline=long(time.time()))
+                                        message='登陆成功', dateline=long(time.time()))
                     return json.dumps(response, default=lambda o: o.__dict__)
                 else:
-                    error = 'user is not exists'
+                    error = '用户不存在'
             else:
-                user = db_session.query(User).filter(User.phone == phone).one()
-                if user is not None:
+                if db_session.query(User).filter(User.phone == phone).scalar() is not None:
+                    user = db_session.query(User).filter(User.phone == phone).one()
                     token = to_md5(user.password + str(long(time.time())))
                     user.token = token
                     db_session.commit()
-                    response = Response(data={'uid': user.id, 'token': token}, code='1',
-                                        message='login successfully', dateline=long(time.time()))
+                    response = Response(data=user.to_json(), code='1',
+                                        message='登陆成功', dateline=long(time.time()))
                     return json.dumps(response, default=lambda o: o.__dict__)
                 else:
-                    error = 'user is not exists'
+                    error = '用户不存在'
 
     response = Response(message=error, code='0', dateline=long(time.time()))
     return json.dumps(response, default=lambda o: o.__dict__)

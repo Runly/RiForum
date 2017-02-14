@@ -23,6 +23,7 @@ class User(Base):
     email = Column(String)
     phone = Column(String(11))
     password = Column(String(16), nullable=False)
+    avatar = Column(String)
     gender = Column(Integer)  # 性别
     birth = Column(String(8))
     location = Column(String(20))
@@ -32,12 +33,13 @@ class User(Base):
     permissions = Column(Integer, nullable=False)  # 权限等级
     token = Column(String(32))
 
-    def __init__(self, name='', email='', phone='', password='', gender=0,
-                 birth='', user_from='', grade=1, exp=0, time=0, permissions=USER):
+    def __init__(self, name='', email='', phone='', password='', avatar='', gender=0,
+                 birth='', user_from='', grade=1, exp=0, time=0, permissions=USER, token=''):
         self.name = name
         self.email = email
         self.phone = phone
         self.password = password
+        self.avatar = avatar
         self.gender = gender
         self.birth = birth
         self.location = user_from
@@ -45,6 +47,7 @@ class User(Base):
         self.experience = exp
         self.time = time
         self.permissions = permissions
+        self.token = token
 
     def to_json(self):
         return {
@@ -53,13 +56,15 @@ class User(Base):
             'phone': self.phone,
             'email': self.email,
             'password': self.password,
+            'avatar': self.avatar,
             'gender': self.gender,
             'birth': self.birth,
             'location': self.location,
             'grade': self.grade,
             'experience': self.experience,
             'time': self.time,
-            'permissions': self.permissions
+            'permissions': self.permissions,
+            'token': self.token
         }
 
 
