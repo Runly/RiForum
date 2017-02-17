@@ -2,11 +2,11 @@
 
 import json
 import time
-
 from utils.md5 import to_md5
 from flask import Flask, request
-
 from database.db import User, init_db, DbSession, Response, Entries
+from utils.text_util import str_is_empty
+from utils.qiniu_token import get_qiniu_token
 
 app = Flask(__name__)
 app.config.from_object('config')
@@ -27,16 +27,7 @@ def teardown_request(exception=None):
         db_session.close()
 
 
-def str_is_empty(a_str):
-    if a_str is None:
-        return True
-    elif len(a_str) == 0:
-        return True
-    else:
-        return False
-
-
-@app.route('/sign_in', methods=['POST'])
+@app.route('/user/sign_in', methods=['POST'])
 def sign_in():
     error = None
     if request.method == 'POST':
@@ -82,7 +73,7 @@ def sign_in():
     return json.dumps(response, default=lambda o: o.__dict__)
 
 
-@app.route('/login', methods=['POST'])
+@app.route('/user/login', methods=['POST'])
 def login():
     error = None
     if request.method == 'POST':
@@ -128,7 +119,7 @@ def login():
     return json.dumps(response, default=lambda o: o.__dict__)
 
 
-@app.route('/release', methods=['POST'])
+@app.route('/entry/release', methods=['POST'])
 def release():
     error = None
     if request.method == 'POST':
@@ -136,67 +127,98 @@ def release():
         uid = None
         title = None
         content = None
+        image = None
         plate = None
         sort = None
-        if 'token' in json.loads(request.get_data()).keys():
-            token = json.loads(request.get_data())['token']
+        json_data = json.loads(request.get_data(), strict=False)
+        if 'token' in json_data.keys():
+            token = json_data['token']
         else:
             error = 'token is necessary'
-        if 'uid' in json.loads(request.get_data()).keys():
-            uid = json.loads(request.get_data())['uid']
+        if 'uid' in json_data.keys():
+            uid = json_data['uid']
         else:
             error = 'uid is necessary'
-        if 'title' in json.loads(request.get_data()).keys():
-            title = json.loads(request.get_data())['title']
+        if 'title' in json_data.keys():
+            title = json_data['title']
         else:
             error = 'title is necessary'
-        if 'content' in json.loads(request.get_data()).keys():
-            content = json.loads(request.get_data())['content']
+        if 'content' in json_data.keys():
+            content = json_data['content']
         else:
             error = 'content is necessary'
-        if 'plate' in json.loads(request.get_data()).keys():
-            plate = json.loads(request.get_data())['plate']
+        if 'plate' in json_data.keys():
+            plate = json_data['plate']
         else:
             error = 'plate is necessary'
-        if 'sort' in json.loads(request.get_data()).keys():
-            sort = json.loads(request.get_data())['plate']
+        if 'sort' in json_data.keys():
+            sort = json_data['plate']
         else:
             error = 'sort is necessary'
+
+        if 'image' in json_data.keys():
+            image = json_data['image']
+            if str_is_empty(image):
+                image = '[]'
+        else:
+            image = '[]'
 
         if title is None or content is None or uid is None or plate is None or token is None:
             response = Response(message=error, code='0', dateline=long(time.time()))
             return json.dumps(response, default=lambda o: o.__dict__)
         else:
-            user = db_session.query(User).filter(User.id == uid).one()
-            if token != user.token:
-                response = Response(message='not login', code='0', dateline=long(time.time()))
-                return json.dumps(response, default=lambda o: o.__dict__)
+            if db_session.query(User).filter(User.id == uid).scalar() is not None:
+                user = db_session.query(User).filter(User.id == uid).one()
+                if token != user.token:
+                    response = Response(message='没有登录', code='0', dateline=long(time.time()))
+                    return json.dumps(response, default=lambda o: o.__dict__)
+                else:
+                    entry = Entries(title=title, content=content, image=image, time=long(time.time()),
+                                    uid=uid, uname=user.name, plate=plate, sort=sort)
+                    db_session.add(entry)
+                    db_session.commit()
+                    response = Response(data=entry.to_json(), message='发布成功',
+                                        code='1', dateline=long(time.time()))
+                    return json.dumps(response, default=lambda o: o.__dict__)
             else:
-                entry = Entries(title=title, content=content,  time=long(time.time()),
-                                uid=uid, uname=user.name, plate=plate, sort=sort)
-                db_session.add(entry)
-                db_session.commit()
-                response = Response(data=entry.to_json(), message='release successfully',
-                                    code='1', dateline=long(time.time()))
+                response = Response(message='用户不存在', code='0', dateline=long(time.time()))
                 return json.dumps(response, default=lambda o: o.__dict__)
 
 
-@app.route('/recommend', methods=['GET', 'POST'])
+@app.route('/entry/recommend', methods=['GET', 'POST'])
 def recommend():
     entry_list = []
     r = db_session.query(Entries).filter(Entries.id > 0).count()
     _sum = 0
+
     for i in range(20):
         if r == 0 or _sum >= r:
             break
         entry = db_session.query(Entries).filter(Entries.id == i+1).one()
+        entry.read_num += 1
         entry_list.append(entry.to_json())
+        db_session.commit()
         _sum += 1
 
-    response = Response(data=entry_list, message='successfully', code='1', dateline=long(time.time()))
+    response = Response(data=entry_list, message='successful', code='1', dateline=long(time.time()))
     return json.dumps(response, default=lambda o: o.__dict__)
 
 
+@app.route('/qiniu/token', methods=['POST'])
+def qiniu_token():
+    if 'uid' in json.loads(request.get_data()).keys():
+        uid = json.loads(request.get_data())['uid']
+        key = uid + '_' + str(time.time()) + '.jpg'
+        data = {'token': get_qiniu_token(key), 'key': key, 'base_url': 'http://ol1tuu1tl.bkt.clouddn.com/'}
+        response = Response(data=data, message='successful',
+                            code='1', dateline=long(time.time()))
+        return json.dumps(response, default=lambda o: o.__dict__)
+    else:
+        error = 'uid is necessary'
+        response = Response(message=error, code='0', dateline=long(time.time()))
+        return json.dumps(response, default=lambda o: o.__dict__)
+
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0')
+    app.run(host='0.0.0.0', port=7732)
 
