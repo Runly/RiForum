@@ -13,5 +13,8 @@ PLATE4_MASTER = 6
 MASTER_SUSPEND = 0
 MASTER_NORMAL = 1
 
+# 七牛base url
+QINIU_BASE_URL = 'http://ol1tuu1tl.bkt.clouddn.com/'
+
 
 

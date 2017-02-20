@@ -3,10 +3,12 @@
 from sqlalchemy import Column, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+import json
 import sys
+
 sys.path.append("..")
 from utils.permissions import *
-
+from utils.text_util import *
 
 Base = declarative_base()
 
@@ -97,43 +99,45 @@ class Entries(Base):
     file_ = Column(String)
     time = Column(Integer, nullable=False)  # 发布时间
     uid = Column(Integer, nullable=False)  # 用户id
-    uname = Column(String, nullable=False)  # 用户名字
     plate = Column(Integer, nullable=False)  # 板块名称
     sort = Column(Integer, nullable=False)  # 板块类别（新帖， 精华帖， 普通帖等）
     read_num = Column(Integer)  # 阅读次数
     like_num = Column(Integer)  # 点赞次数
     comment_num = Column(Integer)  # 评论次数
+    user = None
 
     def __init__(self, title='', content='', image='', file_='', time='', uid='',
-                 uname='', plate='', sort='', read_num=0, like_num=0, comment_num=0):
+                 plate='', sort='', read_num=0, like_num=0, comment_num=0, user=None):
         self.title = title
         self.content = content
         self.image = image
         self.file_ = file_
         self.time = time
         self.uid = uid
-        self.uname = uname
         self.plate = plate
         self.sort = sort
         self.read_num = read_num
         self.like_num = like_num
         self.comment_num = comment_num
+        self.user = user
+
+    def set_user(self, user):
+        self.user = user
 
     def to_json(self):
         return {
             'id': self.id,
             'title': self.title,
             'content': self.content,
-            'image': self.image,
+            'image': json.loads(self.image),
             'file': self.file_,
             'time': self.time,
-            'uid': self.uid,
-            'uname': self.uname,
             'plate': self.plate,
             'sort': self.sort,
             'read_num': self.read_num,
             'like_num': self.like_num,
-            'comment_num': self.comment_num
+            'comment_num': self.comment_num,
+            'user': self.user.to_json()
         }
 
 
@@ -180,7 +184,7 @@ class Like(Base):
     id = Column(Integer, primary_key=True)
     plate_id = Column(Integer, nullable=False)
     entry_id = Column(Integer, nullable=False)
-    uid = Column(Integer, nullable=False)   # 点赞者id
+    uid = Column(Integer, nullable=False)  # 点赞者id
     uname = Column(String, nullable=False)  # 点赞者name
     to_uid = Column(Integer, nullable=False)  # 被点赞者id
     to_uname = Column(String, nullable=False)  # 被点赞者name

@@ -7,6 +7,7 @@ from flask import Flask, request
 from database.db import User, init_db, DbSession, Response, Entries
 from utils.text_util import str_is_empty
 from utils.qiniu_token import get_qiniu_token
+from utils.constant import QINIU_BASE_URL
 
 app = Flask(__name__)
 app.config.from_object('config')
@@ -35,14 +36,15 @@ def sign_in():
         phone = None
         password = None
         uname = None
-        if 'email' in json.loads(request.get_data()).keys():
-            email = json.loads(request.get_data())['email']
-        if 'phone' in json.loads(request.get_data()).keys():
-            phone = json.loads(request.get_data())['phone']
-        if 'password' in json.loads(request.get_data()).keys():
-            password = json.loads(request.get_data())['password']
-        if 'name' in json.loads(request.get_data()).keys():
-            uname = json.loads(request.get_data())['name']
+        json_data = json.loads(request.get_data())
+        if 'email' in json_data.keys():
+            email = json_data['email']
+        if 'phone' in json_data.keys():
+            phone = json_data['phone']
+        if 'password' in json_data.keys():
+            password = json_data['password']
+        if 'name' in json_data.keys():
+            uname = json_data['name']
 
         if str_is_empty(email) and str_is_empty(phone):
             error = '邮箱或手机号不能为空'
@@ -80,12 +82,13 @@ def login():
         email = None
         phone = None
         password = None
-        if 'email' in json.loads(request.get_data()).keys():
-            email = json.loads(request.get_data())['email']
-        if 'phone' in json.loads(request.get_data()).keys():
-            phone = json.loads(request.get_data())['phone']
-        if 'password' in json.loads(request.get_data()).keys():
-            password = json.loads(request.get_data())['password']
+        json_data = json.loads(request.get_data())
+        if 'email' in json_data.keys():
+            email = json_data['email']
+        if 'phone' in json_data.keys():
+            phone = json_data['phone']
+        if 'password' in json_data.keys():
+            password = json_data['password']
 
         if email is None and phone is None:
             error = '账号不能为空'
@@ -174,7 +177,7 @@ def release():
                     return json.dumps(response, default=lambda o: o.__dict__)
                 else:
                     entry = Entries(title=title, content=content, image=image, time=long(time.time()),
-                                    uid=uid, uname=user.name, plate=plate, sort=sort)
+                                    uid=uid, plate=plate, sort=sort, user=user)
                     db_session.add(entry)
                     db_session.commit()
                     response = Response(data=entry.to_json(), message='发布成功',
@@ -196,20 +199,24 @@ def recommend():
             break
         entry = db_session.query(Entries).filter(Entries.id == i+1).one()
         entry.read_num += 1
+        if db_session.query(User).filter(User.id == entry.uid).scalar() is not None:
+            user = db_session.query(User).filter(User.id == entry.uid).one()
+            entry.set_user(user=user)
         entry_list.append(entry.to_json())
         db_session.commit()
         _sum += 1
-
+    entry_list.reverse()
     response = Response(data=entry_list, message='successful', code='1', dateline=long(time.time()))
     return json.dumps(response, default=lambda o: o.__dict__)
 
 
 @app.route('/qiniu/token', methods=['POST'])
 def qiniu_token():
-    if 'uid' in json.loads(request.get_data()).keys():
-        uid = json.loads(request.get_data())['uid']
+    json_data = json.loads(request.get_data())
+    if 'uid' in json_data.keys():
+        uid = json_data['uid']
         key = uid + '_' + str(time.time()) + '.jpg'
-        data = {'token': get_qiniu_token(key), 'key': key, 'base_url': 'http://ol1tuu1tl.bkt.clouddn.com/'}
+        data = {'token': get_qiniu_token(key), 'key': key, 'base_url': QINIU_BASE_URL}
         response = Response(data=data, message='successful',
                             code='1', dateline=long(time.time()))
         return json.dumps(response, default=lambda o: o.__dict__)
@@ -217,6 +224,11 @@ def qiniu_token():
         error = 'uid is necessary'
         response = Response(message=error, code='0', dateline=long(time.time()))
         return json.dumps(response, default=lambda o: o.__dict__)
+
+
+@app.route('/entry/comment')
+def comment():
+    pass
 
 
 if __name__ == '__main__':
