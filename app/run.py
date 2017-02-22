@@ -212,16 +212,29 @@ def recommend():
 
 @app.route('/qiniu/token', methods=['POST'])
 def qiniu_token():
+    uid = None
+    token = None
     json_data = json.loads(request.get_data())
     if 'uid' in json_data.keys():
         uid = json_data['uid']
-        key = uid + '_' + str(time.time()) + '.jpg'
-        data = {'token': get_qiniu_token(key), 'key': key, 'base_url': QINIU_BASE_URL}
-        response = Response(data=data, message='successful',
-                            code='1', dateline=long(time.time()))
-        return json.dumps(response, default=lambda o: o.__dict__)
+    if 'token' in json_data.keys():
+        token = json_data['token']
+
+    if uid is not None and token is not None:
+        if db_session.query(User).filter(User.id == uid).scalar() is not None:
+            user = db_session.query(User).filter(User.id == uid).one()
+            if user.token == token:
+                key = str(uid) + '_' + str(time.time()) + '.jpg'
+                data = {'token': get_qiniu_token(key), 'key': key, 'base_url': QINIU_BASE_URL}
+                response = Response(data=data, message='successful',
+                                    code='1', dateline=long(time.time()))
+                return json.dumps(response, default=lambda o: o.__dict__)
+            else:
+                error = '登录信息过期，请重新登录'
+                response = Response(message=error, code='0', dateline=long(time.time()))
+                return json.dumps(response, default=lambda o: o.__dict__)
     else:
-        error = 'uid is necessary'
+        error = '用户id和token不能为空'
         response = Response(message=error, code='0', dateline=long(time.time()))
         return json.dumps(response, default=lambda o: o.__dict__)
 
@@ -238,7 +251,7 @@ def plate():
                             message='successfully', dateline=long(time.time()))
         return json.dumps(response, default=lambda o: o.__dict__)
     else:
-        response = Response(code='0', message='failed', dateline=long(time.time()))
+        response = Response(data=[], code='1', message='table empty', dateline=long(time.time()))
         return json.dumps(response, default=lambda o: o.__dict__)
 
 

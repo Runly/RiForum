@@ -149,20 +149,18 @@ class Comment(Base):
     plate_id = Column(Integer, nullable=False)  # 板块id
     entry_id = Column(Integer, nullable=False)  # 被评论的id
     uid = Column(Integer, nullable=False)  # 评论者id
-    uname = Column(String, nullable=False)  # 评论者name
     to_uid = Column(Integer, nullable=False)  # 被评论者id
-    to_uname = Column(Integer, nullable=False)  # 被评论者name
     time = Column(Integer, nullable=False)  # 评论时间
+    user = None
 
-    def __init__(self, content='', plate_id=0, entry_id=0, uid=0, uname='', to_uid=0, to_uname='', time=0):
+    def __init__(self, content='', plate_id=0, entry_id=0, uid=0, to_uid=0, time=0, user=None):
         self.content = content
         self.plate_id = plate_id
         self.entry_id = entry_id
         self.uid = uid
-        self.uname = uname
         self.to_uid = to_uid
-        self.to_uname = to_uname
         self.time = time
+        self.user = user
 
     def to_json(self):
         return {
@@ -171,10 +169,9 @@ class Comment(Base):
             'plate_id': self.plate_id,
             'entry_id': self.entry_id,
             'uid': self.uid,
-            'uname': self.uname,
             'to_uid': self.to_uid,
-            'to_uname': self.to_uname,
-            'time': self.time
+            'time': self.time,
+            'user': self.user.to_json()
         }
 
 
