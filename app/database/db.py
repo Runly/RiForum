@@ -7,7 +7,7 @@ import json
 import sys
 
 sys.path.append("..")
-from utils.permissions import *
+from utils.constant import *
 from utils.text_util import *
 
 Base = declarative_base()
