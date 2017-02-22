@@ -4,7 +4,7 @@ import json
 import time
 from utils.md5 import to_md5
 from flask import Flask, request
-from database.db import User, init_db, DbSession, Response, Entries
+from database.db import User, init_db, DbSession, Response, Entries, Plate
 from utils.text_util import str_is_empty
 from utils.qiniu_token import get_qiniu_token
 from utils.constant import QINIU_BASE_URL
@@ -223,6 +223,22 @@ def qiniu_token():
     else:
         error = 'uid is necessary'
         response = Response(message=error, code='0', dateline=long(time.time()))
+        return json.dumps(response, default=lambda o: o.__dict__)
+
+
+@app.route('/entry/plate', methods=['GET'])
+def plate():
+    plate_list = db_session.query(Plate).all()
+    if len(plate_list) > 0:
+        json_list = []
+        for p in plate_list:
+            json_list.append(p.to_json())
+
+        response = Response(data=json_list, code='1',
+                            message='successfully', dateline=long(time.time()))
+        return json.dumps(response, default=lambda o: o.__dict__)
+    else:
+        response = Response(code='0', message='failed', dateline=long(time.time()))
         return json.dumps(response, default=lambda o: o.__dict__)
 
 
