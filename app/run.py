@@ -4,7 +4,7 @@ import json
 import time
 from utils.md5 import to_md5
 from flask import Flask, request
-from database.db import User, init_db, DbSession, Response, Entries, Plate
+from database.db import User, init_db, DbSession, Response, Entries, Plate, Comment
 from utils.text_util import str_is_empty
 from utils.qiniu_token import get_qiniu_token
 from utils.constant import QINIU_BASE_URL
@@ -131,7 +131,7 @@ def release():
         title = None
         content = None
         image = None
-        plate = None
+        _plate = None
         sort = None
         json_data = json.loads(request.get_data(), strict=False)
         if 'token' in json_data.keys():
@@ -151,7 +151,7 @@ def release():
         else:
             error = 'content is necessary'
         if 'plate' in json_data.keys():
-            plate = json_data['plate']
+            _plate = json_data['plate']
         else:
             error = 'plate is necessary'
         if 'sort' in json_data.keys():
@@ -166,7 +166,7 @@ def release():
         else:
             image = '[]'
 
-        if title is None or content is None or uid is None or plate is None or token is None:
+        if title is None or content is None or uid is None or _plate is None or token is None:
             response = Response(message=error, code='0', dateline=long(time.time()))
             return json.dumps(response, default=lambda o: o.__dict__)
         else:
@@ -176,8 +176,8 @@ def release():
                     response = Response(message='没有登录', code='0', dateline=long(time.time()))
                     return json.dumps(response, default=lambda o: o.__dict__)
                 else:
-                    entry = Entries(title=title, content=content, image=image, time=long(time.time()),
-                                    uid=uid, plate=plate, sort=sort, user=user)
+                    entry = Entries(title=title, content=content, image=image, time=long(time.time()*1000),
+                                    uid=uid, plate=_plate, sort=sort, user=user)
                     db_session.add(entry)
                     db_session.commit()
                     response = Response(data=entry.to_json(), message='发布成功',
@@ -188,25 +188,41 @@ def release():
                 return json.dumps(response, default=lambda o: o.__dict__)
 
 
-@app.route('/entry/recommend', methods=['GET', 'POST'])
+@app.route('/entry/recommend', methods=['POST'])
 def recommend():
-    entry_list = []
-    r = db_session.query(Entries).filter(Entries.id > 0).count()
-    _sum = 0
+    page = None
+    error = None
+    code = '1'
+    message = 'successfully'
+    json_data = json.loads(request.get_data())
+    if 'page' in json_data.keys():
+        page = json_data['page']
+    else:
+        error = 'page is necessary'
 
-    for i in range(20):
-        if r == 0 or _sum >= r:
-            break
-        entry = db_session.query(Entries).filter(Entries.id == i+1).one()
+    if page is None:
+        code = '0'
+        message = error
+        response = Response([], code, message, long(time.time()))
+        return json.dumps(response, default=lambda o: o.__dict__)
+
+    entry_list = db_session.query(Entries).filter(Entries.time < page).order_by(-Entries.time).limit(20).all()
+    if len(entry_list) == 0:
+        code = '1'
+        message = 'end'
+        response = Response(entry_list, code, message, long(time.time()))
+        return json.dumps(response, default=lambda o: o.__dict__)
+
+    for entry in entry_list:
         entry.read_num += 1
         if db_session.query(User).filter(User.id == entry.uid).scalar() is not None:
             user = db_session.query(User).filter(User.id == entry.uid).one()
             entry.set_user(user=user)
-        entry_list.append(entry.to_json())
-        db_session.commit()
-        _sum += 1
-    entry_list.reverse()
-    response = Response(data=entry_list, message='successful', code='1', dateline=long(time.time()))
+    db_session.commit()
+
+    for i in range(len(entry_list)):
+        entry_list[i] = entry_list[i].to_json()
+    response = Response(entry_list, code, message, long(time.time()))
     return json.dumps(response, default=lambda o: o.__dict__)
 
 
@@ -255,11 +271,108 @@ def plate():
         return json.dumps(response, default=lambda o: o.__dict__)
 
 
-@app.route('/entry/comment')
+@app.route('/comment/comment', methods=['POST'])
 def comment():
-    pass
+    content = None
+    plate_id = None
+    entry_id = None
+    uid = None
+    comment_id = None
+    token = None
+    error = None
+    json_data = json.loads(request.get_data())
+    if 'content' in json_data.keys():
+        content = json_data['content']
+    else:
+        error = 'content is necessary'
+
+    if 'plate_id' in json_data.keys():
+        plate_id = json_data['plate_id']
+    else:
+        error = 'plate_id is necessary'
+
+    if 'entry_id' in json_data.keys():
+        entry_id = json_data['entry_id']
+    else:
+        error = 'entry_id is necessary'
+
+    if 'uid' in json_data.keys():
+        uid = json_data['uid']
+    else:
+        error = 'uid is necessary'
+
+    if 'comment_id' in json_data.keys():
+        comment_id = json_data['comment_id']
+    else:
+        error = 'comment_id is necessary'
+
+    if 'token' in json_data.keys():
+        token = json_data['token']
+    else:
+        error = 'token is necessary'
+
+    if content is not None and plate_id is not None and entry_id is not None \
+            and uid is not None and comment_id is not None and token is not None:
+        if db_session.query(User).filter(User.id == uid).scalar() is not None:
+            user = db_session.query(User).filter(User.id == uid).one()
+            if user.token != token:
+                error = '登录信息过期，请重新登录'
+                response = Response({}, '0', error, long(time.time()))
+                return json.dumps(response, default=lambda o: o.__dict__)
+
+            _comment = Comment(content, plate_id, entry_id, comment_id, uid, long(time.time()*1000))
+            _comment.set_user(user)
+            db_session.add(_comment)
+            db_session.commit()
+            response = Response(_comment.to_json(), '1', 'successfully', long(time.time()))
+            return json.dumps(response, default=lambda o: o.__dict__)
+    else:
+        response = Response({}, '0', error, long(time.time()))
+        return json.dumps(response, default=lambda o: o.__dict__)
+
+
+@app.route('/comment/comment_list', methods=['POST'])
+def comment_list():
+    page = None
+    entry_id = None
+    error = None
+    code = '1'
+    message = 'successfully'
+    json_data = json.loads(request.get_data())
+    if 'page' in json_data.keys():
+        page = json_data['page']
+    else:
+        error = 'page is necessary'
+
+    if 'entry_id' in json_data.keys():
+        entry_id = json_data['entry_id']
+    else:
+        error = 'page is necessary'
+
+    if page is None or entry_id is None:
+        response = Response([], '0', error, long(time.time()))
+        return json.dumps(response, default=lambda o: o.__dict__)
+
+    _comment_list = db_session.query(Comment).filter(Comment.entry_id == entry_id)\
+        .filter(Comment.time > page).order_by(Comment.time).limit(20).all()
+
+    if len(_comment_list) == 0:
+        code = '1'
+        message = 'end'
+        response = Response(_comment_list, code, message, long(time.time()))
+        return json.dumps(response, default=lambda o: o.__dict__)
+
+    for _comment in _comment_list:
+        if db_session.query(User).filter(User.id == _comment.uid).scalar() is not None:
+            user = db_session.query(User).filter(User.id == _comment.uid).one()
+            _comment.set_user(user=user)
+    db_session.commit()
+
+    for i in range(len(_comment_list)):
+        _comment_list[i] = _comment_list[i].to_json()
+    response = Response(_comment_list,  code, message, long(time.time()))
+    return json.dumps(response, default=lambda o: o.__dict__)
 
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=7732)
-

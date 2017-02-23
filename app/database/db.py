@@ -148,19 +148,18 @@ class Comment(Base):
     content = Column(String, nullable=False)  # 评论内容
     plate_id = Column(Integer, nullable=False)  # 板块id
     entry_id = Column(Integer, nullable=False)  # 被评论的id
+    comment_id = Column(Integer, nullable=False)  # 被评论者id
     uid = Column(Integer, nullable=False)  # 评论者id
-    to_uid = Column(Integer, nullable=False)  # 被评论者id
     time = Column(Integer, nullable=False)  # 评论时间
     user = None
 
-    def __init__(self, content='', plate_id=0, entry_id=0, uid=0, to_uid=0, time=0, user=None):
+    def __init__(self, content='', plate_id=0, entry_id=0, comment_id=0, uid=0, time=0):
         self.content = content
         self.plate_id = plate_id
         self.entry_id = entry_id
         self.uid = uid
-        self.to_uid = to_uid
+        self.comment_id = comment_id
         self.time = time
-        self.user = user
 
     def to_json(self):
         return {
@@ -169,10 +168,13 @@ class Comment(Base):
             'plate_id': self.plate_id,
             'entry_id': self.entry_id,
             'uid': self.uid,
-            'to_uid': self.to_uid,
+            'comment_id': self.comment_id,
             'time': self.time,
             'user': self.user.to_json()
         }
+
+    def set_user(self, user):
+        self.user = user
 
 
 # 点赞
@@ -233,7 +235,7 @@ class PlateMaster(Base):
 
 
 class Response(object):
-    def __init__(self, data=dict(), code='', message='', dateline=''):
+    def __init__(self, data=dict(), code='', message='', dateline=0):
         self.data = data
         self.code = code
         self.message = message
