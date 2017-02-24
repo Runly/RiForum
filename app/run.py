@@ -98,10 +98,15 @@ def login():
             if email is not None:
                 if db_session.query(User).filter(User.email == email).scalar() is not None:
                     user = db_session.query(User).filter(User.email == email).one()
+                    if password != user.password:
+                        response = Response(data={}, code='0',
+                                            message='密码错误', dateline=long(time.time()))
+                        return json.dumps(response, default=lambda o: o.__dict__)
+
                     token = to_md5(user.password + str(long(time.time())))
                     user.token = token
                     db_session.commit()
-                    response = Response(data={'uid': user.id, 'token': token}, code='1',
+                    response = Response(data=user.to_json(), code='1',
                                         message='登陆成功', dateline=long(time.time()))
                     return json.dumps(response, default=lambda o: o.__dict__)
                 else:
@@ -109,6 +114,11 @@ def login():
             else:
                 if db_session.query(User).filter(User.phone == phone).scalar() is not None:
                     user = db_session.query(User).filter(User.phone == phone).one()
+                    if password != user.password:
+                        response = Response(data={}, code='0',
+                                            message='密码错误', dateline=long(time.time()))
+                        return json.dumps(response, default=lambda o: o.__dict__)
+
                     token = to_md5(user.password + str(long(time.time())))
                     user.token = token
                     db_session.commit()
@@ -222,6 +232,7 @@ def recommend():
 
     for i in range(len(entry_list)):
         entry_list[i] = entry_list[i].to_json()
+
     response = Response(entry_list, code, message, long(time.time()))
     return json.dumps(response, default=lambda o: o.__dict__)
 
@@ -320,9 +331,29 @@ def comment():
                 response = Response({}, '0', error, long(time.time()))
                 return json.dumps(response, default=lambda o: o.__dict__)
 
+            if db_session.query(Entries).filter(Entries.id == entry_id).scalar() is None:
+                error = '此条主题不存在'
+                response = Response({}, '0', error, long(time.time()))
+                return json.dumps(response, default=lambda o: o.__dict__)
+
             _comment = Comment(content, plate_id, entry_id, comment_id, uid, long(time.time()*1000))
             _comment.set_user(user)
+
+            if comment_id != -1:
+                if db_session.query(Comment).filter(Comment.id == comment_id).scalar() is not None:
+                    commented = db_session.query(Comment).filter(Comment.id == comment_id).one()
+                    if db_session.query(User).filter(User.id == commented.uid).scalar() is not None:
+                        user = db_session.query(User).filter(User.id == commented.uid).one()
+                        commented.set_user(user)
+                    _comment.set_commented(commented)
+                else:
+                    error = '这条评论已不存在'
+                    response = Response({}, '0', error, long(time.time()))
+                    return json.dumps(response, default=lambda o: o.__dict__)
+
             db_session.add(_comment)
+            entry = db_session.query(Entries).filter(Entries.id == entry_id).one()
+            entry.comment_num += 1
             db_session.commit()
             response = Response(_comment.to_json(), '1', 'successfully', long(time.time()))
             return json.dumps(response, default=lambda o: o.__dict__)
@@ -347,7 +378,7 @@ def comment_list():
     if 'entry_id' in json_data.keys():
         entry_id = json_data['entry_id']
     else:
-        error = 'page is necessary'
+        error = 'entry_id is necessary'
 
     if page is None or entry_id is None:
         response = Response([], '0', error, long(time.time()))
@@ -366,10 +397,18 @@ def comment_list():
         if db_session.query(User).filter(User.id == _comment.uid).scalar() is not None:
             user = db_session.query(User).filter(User.id == _comment.uid).one()
             _comment.set_user(user=user)
+        if _comment.comment_id != -1:
+            if db_session.query(Comment).filter(Comment.id == _comment.comment_id).scalar() is not None:
+                commented = db_session.query(Comment).filter(Comment.id == _comment.comment_id).one()
+                if db_session.query(User).filter(User.id == commented.uid).scalar() is not None:
+                    user = db_session.query(User).filter(User.id == commented.uid).one()
+                    commented.set_user(user)
+                _comment.set_commented(commented)
     db_session.commit()
 
     for i in range(len(_comment_list)):
         _comment_list[i] = _comment_list[i].to_json()
+
     response = Response(_comment_list,  code, message, long(time.time()))
     return json.dumps(response, default=lambda o: o.__dict__)
 

@@ -152,6 +152,7 @@ class Comment(Base):
     uid = Column(Integer, nullable=False)  # 评论者id
     time = Column(Integer, nullable=False)  # 评论时间
     user = None
+    commented = None
 
     def __init__(self, content='', plate_id=0, entry_id=0, comment_id=0, uid=0, time=0):
         self.content = content
@@ -162,19 +163,36 @@ class Comment(Base):
         self.time = time
 
     def to_json(self):
-        return {
-            'id': self.id,
-            'content': self.content,
-            'plate_id': self.plate_id,
-            'entry_id': self.entry_id,
-            'uid': self.uid,
-            'comment_id': self.comment_id,
-            'time': self.time,
-            'user': self.user.to_json()
-        }
+        if self.commented is not None:
+            return {
+                'id': self.id,
+                'content': self.content,
+                'plate_id': self.plate_id,
+                'entry_id': self.entry_id,
+                'uid': self.uid,
+                'comment_id': self.comment_id,
+                'time': self.time,
+                'user': self.user.to_json(),
+                'commented': self.commented.to_json()
+            }
+        else:
+            return {
+                'id': self.id,
+                'content': self.content,
+                'plate_id': self.plate_id,
+                'entry_id': self.entry_id,
+                'uid': self.uid,
+                'comment_id': self.comment_id,
+                'time': self.time,
+                'user': self.user.to_json(),
+                'commented': {}
+            }
 
     def set_user(self, user):
         self.user = user
+
+    def set_commented(self, commented):
+        self.commented = commented
 
 
 # 点赞
