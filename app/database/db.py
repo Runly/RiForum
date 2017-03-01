@@ -57,7 +57,7 @@ class User(Base):
             'name': self.name,
             'phone': self.phone,
             'email': self.email,
-            'password': self.password,
+            'password': '******',
             'avatar': self.avatar,
             'gender': self.gender,
             'birth': self.birth,

@@ -282,6 +282,54 @@ def plate():
         return json.dumps(response, default=lambda o: o.__dict__)
 
 
+@app.route('/entry/user_release', methods=['POST'])
+def user_release():
+    uid = None
+    page = None
+    error = None
+    code = '1'
+    message = 'successfully'
+    json_data = json.loads(request.get_data())
+    if 'uid' in json_data.keys():
+        uid = json_data['uid']
+    else:
+        error = 'uid不能为空'
+    if 'page' in json_data.keys():
+        page = json_data['page']
+    else:
+        error = 'page不能为空'
+
+    if uid is None or page is None:
+        response = Response([], '0', error, long(time.time()))
+        return json.dumps(response, default=lambda o: o.__dict__)
+
+    if db_session.query(User).filter(User.id == uid).scalar() is None:
+        error = '用户不存在'
+        response = Response([], '0', error, long(time.time()))
+        return json.dumps(response, default=lambda o: o.__dict__)
+
+    entry_list = db_session.query(Entries).filter(Entries.uid == uid).\
+        filter(Entries.time < page).order_by(-Entries.time).limit(20).all()
+    if len(entry_list) == 0:
+        code = '1'
+        message = 'end'
+        response = Response(entry_list, code, message, long(time.time()))
+        return json.dumps(response, default=lambda o: o.__dict__)
+
+    for entry in entry_list:
+        entry.read_num += 1
+        if db_session.query(User).filter(User.id == entry.uid).scalar() is not None:
+            user = db_session.query(User).filter(User.id == entry.uid).one()
+            entry.set_user(user=user)
+    db_session.commit()
+
+    for i in range(len(entry_list)):
+        entry_list[i] = entry_list[i].to_json()
+
+    response = Response(entry_list, code, message, long(time.time()))
+    return json.dumps(response, default=lambda o: o.__dict__)
+
+
 @app.route('/comment/comment', methods=['POST'])
 def comment():
     content = None
