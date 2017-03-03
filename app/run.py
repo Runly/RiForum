@@ -51,27 +51,27 @@ def sign_in():
         elif str_is_empty(password) or str_is_empty(uname):
             error = '密码和昵称不能为空'
         else:
-            user = User(password=password, name=uname, time=long(time.time()))
+            user = User(password=password, name=uname, time=long(time.time()*1000))
             if email is not None:
                 if db_session.query(User.email).filter(User.email == email).scalar() is not None:
                     response = Response(code='0', message='邮箱已经被注册',
-                                        dateline=long(time.time()))
+                                        dateline=long(time.time()*1000))
                     return json.dumps(response, default=lambda o: o.__dict__)
                 user.email = email
             else:
                 if db_session.query(User.phone).filter(User.phone == phone).scalar() is not None:
                     response = Response(code='0', message='手机号已经被注册',
-                                        dateline=long(time.time()))
+                                        dateline=long(time.time()*1000))
                     return json.dumps(response, default=lambda o: o.__dict__)
                 user.phone = phone
 
             db_session.add(user)
             db_session.commit()
             response = Response(data=user.to_json(), message='登陆成功', code='1',
-                                dateline=long(time.time()))
+                                dateline=long(time.time()*1000))
             return json.dumps(response, default=lambda o: o.__dict__)
 
-    response = Response(message=error, code='0', dateline=long(time.time()))
+    response = Response(message=error, code='0', dateline=long(time.time()*1000))
     return json.dumps(response, default=lambda o: o.__dict__)
 
 
@@ -100,14 +100,14 @@ def login():
                     user = db_session.query(User).filter(User.email == email).one()
                     if password != user.password:
                         response = Response(data={}, code='0',
-                                            message='密码错误', dateline=long(time.time()))
+                                            message='密码错误', dateline=long(time.time()*1000))
                         return json.dumps(response, default=lambda o: o.__dict__)
 
-                    token = to_md5(user.password + str(long(time.time())))
+                    token = to_md5(user.password + str(long(time.time()*1000)))
                     user.token = token
                     db_session.commit()
                     response = Response(data=user.to_json(), code='1',
-                                        message='登陆成功', dateline=long(time.time()))
+                                        message='登陆成功', dateline=long(time.time()*1000))
                     return json.dumps(response, default=lambda o: o.__dict__)
                 else:
                     error = '用户不存在'
@@ -116,20 +116,88 @@ def login():
                     user = db_session.query(User).filter(User.phone == phone).one()
                     if password != user.password:
                         response = Response(data={}, code='0',
-                                            message='密码错误', dateline=long(time.time()))
+                                            message='密码错误', dateline=long(time.time()*1000))
                         return json.dumps(response, default=lambda o: o.__dict__)
 
-                    token = to_md5(user.password + str(long(time.time())))
+                    token = to_md5(user.password + str(long(time.time()*1000)))
                     user.token = token
                     db_session.commit()
                     response = Response(data=user.to_json(), code='1',
-                                        message='登陆成功', dateline=long(time.time()))
+                                        message='登陆成功', dateline=long(time.time()*1000))
                     return json.dumps(response, default=lambda o: o.__dict__)
                 else:
                     error = '用户不存在'
 
-    response = Response(message=error, code='0', dateline=long(time.time()))
+    response = Response(message=error, code='0', dateline=long(time.time()*1000))
     return json.dumps(response, default=lambda o: o.__dict__)
+
+
+@app.route('/user/modify_info', methods=['POST'])
+def modify_info():
+    uid = None
+    name = None
+    gender = None
+    error = None
+    code = '1'
+    message = 'successfully'
+    json_data = json.loads(request.get_data())
+    if 'uid' in json_data.keys():
+        uid = json_data['uid']
+    else:
+        error = 'uid is necessary'
+    if 'name' in json_data.keys():
+        name = json_data['name']
+    else:
+        error = 'name is necessary'
+    if 'gender' in json_data.keys():
+        gender = json_data['gender']
+    else:
+        error = 'gender is necessary'
+
+    if uid is None or name is None or gender is None:
+        response = Response({}, '0', error, long(time.time()*1000))
+        return json.dumps(response, default=lambda o: o.__dict__)
+
+    if db_session.query(User).filter(User.id == uid).scalar() is not None:
+        user = db_session.query(User).filter(User.id == uid).one()
+        user.name = name
+        user.gender = gender
+        db_session.commit()
+        response = Response(user.to_json(), code, message, long(time.time() * 1000))
+        return json.dumps(response, default=lambda o: o.__dict__)
+    else:
+        response = Response({}, '0', '用户不存在', long(time.time() * 1000))
+        return json.dumps(response, default=lambda o: o.__dict__)
+
+
+@app.route('/user/modify_avatar', methods=['POST'])
+def modify_avatar():
+    uid = None
+    avatar = None
+    error = None
+    json_data = json.loads(request.get_data())
+    if 'uid' in json_data.keys():
+        uid = json_data['uid']
+    else:
+        error = 'uid is necessary'
+    if 'avatar' in json_data.keys():
+        avatar = json_data['avatar']
+    else:
+        error = 'avatar is necessary'
+
+    if uid is None or avatar is None:
+        response = Response({}, '0', error, long(time.time() * 1000))
+        return json.dumps(response, default=lambda o: o.__dict__)
+
+    if db_session.query(User).filter(User.id == uid).scalar() is not None:
+        user = db_session.query(User).filter(User.id == uid).one()
+        user.avatar = avatar
+        db_session.commit()
+        response = Response(user.to_json(), "1", "successfully", long(time.time() * 1000))
+        return json.dumps(response, default=lambda o: o.__dict__)
+    else:
+        response = Response({}, '0', '用户不存在', long(time.time() * 1000))
+        return json.dumps(response, default=lambda o: o.__dict__)
 
 
 @app.route('/entry/release', methods=['POST'])
@@ -177,13 +245,13 @@ def release():
             image = '[]'
 
         if title is None or content is None or uid is None or _plate is None or token is None:
-            response = Response(message=error, code='0', dateline=long(time.time()))
+            response = Response(message=error, code='0', dateline=long(time.time()*1000))
             return json.dumps(response, default=lambda o: o.__dict__)
         else:
             if db_session.query(User).filter(User.id == uid).scalar() is not None:
                 user = db_session.query(User).filter(User.id == uid).one()
                 if token != user.token:
-                    response = Response(message='没有登录', code='0', dateline=long(time.time()))
+                    response = Response(message='没有登录', code='0', dateline=long(time.time()*1000))
                     return json.dumps(response, default=lambda o: o.__dict__)
                 else:
                     entry = Entries(title=title, content=content, image=image, time=long(time.time()*1000),
@@ -191,10 +259,10 @@ def release():
                     db_session.add(entry)
                     db_session.commit()
                     response = Response(data=entry.to_json(), message='发布成功',
-                                        code='1', dateline=long(time.time()))
+                                        code='1', dateline=long(time.time()*1000))
                     return json.dumps(response, default=lambda o: o.__dict__)
             else:
-                response = Response(message='用户不存在', code='0', dateline=long(time.time()))
+                response = Response(message='用户不存在', code='0', dateline=long(time.time()*1000))
                 return json.dumps(response, default=lambda o: o.__dict__)
 
 
@@ -213,14 +281,14 @@ def recommend():
     if page is None:
         code = '0'
         message = error
-        response = Response([], code, message, long(time.time()))
+        response = Response([], code, message, long(time.time()*1000))
         return json.dumps(response, default=lambda o: o.__dict__)
 
     entry_list = db_session.query(Entries).filter(Entries.time < page).order_by(-Entries.time).limit(20).all()
     if len(entry_list) == 0:
         code = '1'
         message = 'end'
-        response = Response(entry_list, code, message, long(time.time()))
+        response = Response(entry_list, code, message, long(time.time()*1000))
         return json.dumps(response, default=lambda o: o.__dict__)
 
     for entry in entry_list:
@@ -233,7 +301,7 @@ def recommend():
     for i in range(len(entry_list)):
         entry_list[i] = entry_list[i].to_json()
 
-    response = Response(entry_list, code, message, long(time.time()))
+    response = Response(entry_list, code, message, long(time.time()*1000))
     return json.dumps(response, default=lambda o: o.__dict__)
 
 
@@ -251,18 +319,18 @@ def qiniu_token():
         if db_session.query(User).filter(User.id == uid).scalar() is not None:
             user = db_session.query(User).filter(User.id == uid).one()
             if user.token == token:
-                key = str(uid) + '_' + str(time.time()) + '.jpg'
+                key = str(uid) + '_' + str(time.time()*1000) + '.jpg'
                 data = {'token': get_qiniu_token(key), 'key': key, 'base_url': QINIU_BASE_URL}
                 response = Response(data=data, message='successful',
-                                    code='1', dateline=long(time.time()))
+                                    code='1', dateline=long(time.time()*1000))
                 return json.dumps(response, default=lambda o: o.__dict__)
             else:
                 error = '登录信息过期，请重新登录'
-                response = Response(message=error, code='0', dateline=long(time.time()))
+                response = Response(message=error, code='0', dateline=long(time.time()*1000))
                 return json.dumps(response, default=lambda o: o.__dict__)
     else:
         error = '用户id和token不能为空'
-        response = Response(message=error, code='0', dateline=long(time.time()))
+        response = Response(message=error, code='0', dateline=long(time.time()*1000))
         return json.dumps(response, default=lambda o: o.__dict__)
 
 
@@ -275,10 +343,10 @@ def plate():
             json_list.append(p.to_json())
 
         response = Response(data=json_list, code='1',
-                            message='successfully', dateline=long(time.time()))
+                            message='successfully', dateline=long(time.time()*1000))
         return json.dumps(response, default=lambda o: o.__dict__)
     else:
-        response = Response(data=[], code='1', message='table empty', dateline=long(time.time()))
+        response = Response(data=[], code='1', message='table empty', dateline=long(time.time()*1000))
         return json.dumps(response, default=lambda o: o.__dict__)
 
 
@@ -300,12 +368,12 @@ def user_release():
         error = 'page不能为空'
 
     if uid is None or page is None:
-        response = Response([], '0', error, long(time.time()))
+        response = Response([], '0', error, long(time.time()*1000))
         return json.dumps(response, default=lambda o: o.__dict__)
 
     if db_session.query(User).filter(User.id == uid).scalar() is None:
         error = '用户不存在'
-        response = Response([], '0', error, long(time.time()))
+        response = Response([], '0', error, long(time.time()*1000))
         return json.dumps(response, default=lambda o: o.__dict__)
 
     entry_list = db_session.query(Entries).filter(Entries.uid == uid).\
@@ -313,7 +381,7 @@ def user_release():
     if len(entry_list) == 0:
         code = '1'
         message = 'end'
-        response = Response(entry_list, code, message, long(time.time()))
+        response = Response(entry_list, code, message, long(time.time()*1000))
         return json.dumps(response, default=lambda o: o.__dict__)
 
     for entry in entry_list:
@@ -326,7 +394,7 @@ def user_release():
     for i in range(len(entry_list)):
         entry_list[i] = entry_list[i].to_json()
 
-    response = Response(entry_list, code, message, long(time.time()))
+    response = Response(entry_list, code, message, long(time.time()*1000))
     return json.dumps(response, default=lambda o: o.__dict__)
 
 
@@ -376,12 +444,12 @@ def comment():
             user = db_session.query(User).filter(User.id == uid).one()
             if user.token != token:
                 error = '登录信息过期，请重新登录'
-                response = Response({}, '0', error, long(time.time()))
+                response = Response({}, '0', error, long(time.time()*1000))
                 return json.dumps(response, default=lambda o: o.__dict__)
 
             if db_session.query(Entries).filter(Entries.id == entry_id).scalar() is None:
                 error = '此条主题不存在'
-                response = Response({}, '0', error, long(time.time()))
+                response = Response({}, '0', error, long(time.time()*1000))
                 return json.dumps(response, default=lambda o: o.__dict__)
 
             _comment = Comment(content, plate_id, entry_id, comment_id, uid, long(time.time()*1000))
@@ -396,17 +464,17 @@ def comment():
                     _comment.set_commented(commented)
                 else:
                     error = '这条评论已不存在'
-                    response = Response({}, '0', error, long(time.time()))
+                    response = Response({}, '0', error, long(time.time()*1000))
                     return json.dumps(response, default=lambda o: o.__dict__)
 
             db_session.add(_comment)
             entry = db_session.query(Entries).filter(Entries.id == entry_id).one()
             entry.comment_num += 1
             db_session.commit()
-            response = Response(_comment.to_json(), '1', 'successfully', long(time.time()))
+            response = Response(_comment.to_json(), '1', 'successfully', long(time.time()*1000))
             return json.dumps(response, default=lambda o: o.__dict__)
     else:
-        response = Response({}, '0', error, long(time.time()))
+        response = Response({}, '0', error, long(time.time()*1000))
         return json.dumps(response, default=lambda o: o.__dict__)
 
 
@@ -429,7 +497,7 @@ def comment_list():
         error = 'entry_id is necessary'
 
     if page is None or entry_id is None:
-        response = Response([], '0', error, long(time.time()))
+        response = Response([], '0', error, long(time.time()*1000))
         return json.dumps(response, default=lambda o: o.__dict__)
 
     _comment_list = db_session.query(Comment).filter(Comment.entry_id == entry_id)\
@@ -438,7 +506,7 @@ def comment_list():
     if len(_comment_list) == 0:
         code = '1'
         message = 'end'
-        response = Response(_comment_list, code, message, long(time.time()))
+        response = Response(_comment_list, code, message, long(time.time()*1000))
         return json.dumps(response, default=lambda o: o.__dict__)
 
     for _comment in _comment_list:
@@ -457,7 +525,7 @@ def comment_list():
     for i in range(len(_comment_list)):
         _comment_list[i] = _comment_list[i].to_json()
 
-    response = Response(_comment_list,  code, message, long(time.time()))
+    response = Response(_comment_list,  code, message, long(time.time()*1000))
     return json.dumps(response, default=lambda o: o.__dict__)
 
 
