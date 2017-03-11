@@ -16,5 +16,14 @@ MASTER_NORMAL = 1
 # 七牛base url
 QINIU_BASE_URL = 'http://ol1tuu1tl.bkt.clouddn.com/'
 
+# plates
+FUNNY = 1
+MEDIA = 2
+TRAVEL = 3
+GAME = 4
+DAILY_LIFE = 5
+FOOD = 6
+CARTON = 7
+
 
 

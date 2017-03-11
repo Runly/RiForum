@@ -7,7 +7,7 @@ from flask import Flask, request
 from database.db import User, init_db, DbSession, Response, Entries, Plate, Comment
 from utils.text_util import str_is_empty
 from utils.qiniu_token import get_qiniu_token
-from utils.constant import QINIU_BASE_URL
+from utils.constant import *
 
 app = Flask(__name__)
 app.config.from_object('config')
@@ -305,35 +305,6 @@ def recommend():
     return json.dumps(response, default=lambda o: o.__dict__)
 
 
-@app.route('/qiniu/token', methods=['POST'])
-def qiniu_token():
-    uid = None
-    token = None
-    json_data = json.loads(request.get_data())
-    if 'uid' in json_data.keys():
-        uid = json_data['uid']
-    if 'token' in json_data.keys():
-        token = json_data['token']
-
-    if uid is not None and token is not None:
-        if db_session.query(User).filter(User.id == uid).scalar() is not None:
-            user = db_session.query(User).filter(User.id == uid).one()
-            if user.token == token:
-                key = str(uid) + '_' + str(time.time()*1000) + '.jpg'
-                data = {'token': get_qiniu_token(key), 'key': key, 'base_url': QINIU_BASE_URL}
-                response = Response(data=data, message='successful',
-                                    code='1', dateline=long(time.time()*1000))
-                return json.dumps(response, default=lambda o: o.__dict__)
-            else:
-                error = '登录信息过期，请重新登录'
-                response = Response(message=error, code='0', dateline=long(time.time()*1000))
-                return json.dumps(response, default=lambda o: o.__dict__)
-    else:
-        error = '用户id和token不能为空'
-        response = Response(message=error, code='0', dateline=long(time.time()*1000))
-        return json.dumps(response, default=lambda o: o.__dict__)
-
-
 @app.route('/entry/plate', methods=['GET'])
 def plate():
     plate_list = db_session.query(Plate).all()
@@ -378,6 +349,38 @@ def user_release():
 
     entry_list = db_session.query(Entries).filter(Entries.uid == uid).\
         filter(Entries.time < page).order_by(-Entries.time).limit(20).all()
+    if len(entry_list) == 0:
+        code = '1'
+        message = 'end'
+        response = Response(entry_list, code, message, long(time.time()*1000))
+        return json.dumps(response, default=lambda o: o.__dict__)
+
+    for entry in entry_list:
+        entry.read_num += 1
+        if db_session.query(User).filter(User.id == entry.uid).scalar() is not None:
+            user = db_session.query(User).filter(User.id == entry.uid).one()
+            entry.set_user(user=user)
+    db_session.commit()
+
+    for i in range(len(entry_list)):
+        entry_list[i] = entry_list[i].to_json()
+
+    response = Response(entry_list, code, message, long(time.time()*1000))
+    return json.dumps(response, default=lambda o: o.__dict__)
+
+
+@app.route('/entry/all_plate_entries', methods=['GET'])
+def all_plate_entries():
+    code = '1'
+    message = 'successfully'
+    funny_list = db_session.query(Entries).filter(Entries.plate == FUNNY).order_by(-Entries.time).limit(4).all()
+    media_list = db_session.query(Entries).filter(Entries.plate == MEDIA).order_by(-Entries.time).limit(4).all()
+    travel_list = db_session.query(Entries).filter(Entries.plate == TRAVEL).order_by(-Entries.time).limit(4).all()
+    game_list = db_session.query(Entries).filter(Entries.plate == GAME).order_by(-Entries.time).limit(4).all()
+    daily_list = db_session.query(Entries).filter(Entries.plate == DAILY_LIFE).order_by(-Entries.time).limit(4).all()
+    food_list = db_session.query(Entries).filter(Entries.plate == FOOD).order_by(-Entries.time).limit(4).all()
+    carton_list = db_session.query(Entries).filter(Entries.plate == CARTON).order_by(-Entries.time).limit(4).all()
+    entry_list = funny_list + media_list + travel_list + game_list + daily_list + food_list + carton_list
     if len(entry_list) == 0:
         code = '1'
         message = 'end'
@@ -527,6 +530,35 @@ def comment_list():
 
     response = Response(_comment_list,  code, message, long(time.time()*1000))
     return json.dumps(response, default=lambda o: o.__dict__)
+
+
+@app.route('/qiniu/token', methods=['POST'])
+def qiniu_token():
+    uid = None
+    token = None
+    json_data = json.loads(request.get_data())
+    if 'uid' in json_data.keys():
+        uid = json_data['uid']
+    if 'token' in json_data.keys():
+        token = json_data['token']
+
+    if uid is not None and token is not None:
+        if db_session.query(User).filter(User.id == uid).scalar() is not None:
+            user = db_session.query(User).filter(User.id == uid).one()
+            if user.token == token:
+                key = str(uid) + '_' + str(long(time.time())) + '.jpg'
+                data = {'token': get_qiniu_token(key), 'key': key, 'base_url': QINIU_BASE_URL}
+                response = Response(data=data, message='successful',
+                                    code='1', dateline=long(time.time()*1000))
+                return json.dumps(response, default=lambda o: o.__dict__)
+            else:
+                error = '登录信息过期，请重新登录'
+                response = Response(message=error, code='0', dateline=long(time.time()*1000))
+                return json.dumps(response, default=lambda o: o.__dict__)
+    else:
+        error = '用户id和token不能为空'
+        response = Response(message=error, code='0', dateline=long(time.time()*1000))
+        return json.dumps(response, default=lambda o: o.__dict__)
 
 
 if __name__ == '__main__':
