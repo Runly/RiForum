@@ -229,11 +229,11 @@ def release():
         else:
             error = 'content is necessary'
         if 'plate_id' in json_data.keys():
-            plate_id = json_data['plate']
+            plate_id = json_data['plate_id']
         else:
             error = 'plate is necessary'
         if 'sort' in json_data.keys():
-            sort = json_data['plate']
+            sort = json_data['plate_id']
         else:
             error = 'sort is necessary'
 
@@ -381,13 +381,13 @@ def user_release():
 def all_plate_entries():
     code = '1'
     message = 'successfully'
-    funny_list = db_session.query(Entries).filter(Entries.plate == FUNNY).order_by(-Entries.time).limit(4).all()
-    media_list = db_session.query(Entries).filter(Entries.plate == MEDIA).order_by(-Entries.time).limit(4).all()
-    travel_list = db_session.query(Entries).filter(Entries.plate == TRAVEL).order_by(-Entries.time).limit(4).all()
-    game_list = db_session.query(Entries).filter(Entries.plate == GAME).order_by(-Entries.time).limit(4).all()
-    daily_list = db_session.query(Entries).filter(Entries.plate == DAILY_LIFE).order_by(-Entries.time).limit(4).all()
-    food_list = db_session.query(Entries).filter(Entries.plate == FOOD).order_by(-Entries.time).limit(4).all()
-    carton_list = db_session.query(Entries).filter(Entries.plate == CARTON).order_by(-Entries.time).limit(4).all()
+    funny_list = db_session.query(Entries).filter(Entries.plate_id == FUNNY).order_by(-Entries.time).limit(4).all()
+    media_list = db_session.query(Entries).filter(Entries.plate_id == MEDIA).order_by(-Entries.time).limit(4).all()
+    travel_list = db_session.query(Entries).filter(Entries.plate_id == TRAVEL).order_by(-Entries.time).limit(4).all()
+    game_list = db_session.query(Entries).filter(Entries.plate_id == GAME).order_by(-Entries.time).limit(4).all()
+    daily_list = db_session.query(Entries).filter(Entries.plate_id == DAILY_LIFE).order_by(-Entries.time).limit(4).all()
+    food_list = db_session.query(Entries).filter(Entries.plate_id == FOOD).order_by(-Entries.time).limit(4).all()
+    carton_list = db_session.query(Entries).filter(Entries.plate_id == CARTON).order_by(-Entries.time).limit(4).all()
     entry_list = funny_list + media_list + travel_list + game_list + daily_list + food_list + carton_list
     if len(entry_list) == 0:
         code = '1'
