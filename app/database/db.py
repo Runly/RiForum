@@ -76,16 +76,19 @@ class Plate(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False, unique=True)
     message = Column(String)
+    icon = Column(String)
 
-    def __init__(self, name='', message=''):
+    def __init__(self, name='', message='', icon=''):
         self.name = name
         self.message = message
+        self.icon = icon
 
     def to_json(self):
         return {
             'id': self.id,
             'name': self.name,
-            'message': self.message
+            'message': self.message,
+            'icon': self.icon
         }
 
 
@@ -99,30 +102,35 @@ class Entries(Base):
     file_ = Column(String)
     time = Column(Integer, nullable=False)  # 发布时间
     uid = Column(Integer, nullable=False)  # 用户id
-    plate = Column(Integer, nullable=False)  # 板块名称
+    plate_id = Column(Integer, nullable=False)  # 板块名称
     sort = Column(Integer, nullable=False)  # 板块类别（新帖， 精华帖， 普通帖等）
     read_num = Column(Integer)  # 阅读次数
     like_num = Column(Integer)  # 点赞次数
     comment_num = Column(Integer)  # 评论次数
     user = None
+    plate = None
 
     def __init__(self, title='', content='', image='', file_='', time='', uid='',
-                 plate='', sort='', read_num=0, like_num=0, comment_num=0, user=None):
+                 plate_id='', sort='', read_num=0, like_num=0, comment_num=0, user=None, plate=None):
         self.title = title
         self.content = content
         self.image = image
         self.file_ = file_
         self.time = time
         self.uid = uid
-        self.plate = plate
+        self.plate_id = plate_id
         self.sort = sort
         self.read_num = read_num
         self.like_num = like_num
         self.comment_num = comment_num
         self.user = user
+        self.plate = plate
 
     def set_user(self, user):
         self.user = user
+
+    def set_plate(self, plate):
+        self.plate = plate
 
     def to_json(self):
         return {
@@ -137,7 +145,8 @@ class Entries(Base):
             'read_num': self.read_num,
             'like_num': self.like_num,
             'comment_num': self.comment_num,
-            'user': self.user.to_json()
+            'user': self.user.to_json(),
+            'plate': self.plate.to_json()
         }
 
 

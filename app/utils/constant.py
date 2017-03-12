@@ -24,6 +24,3 @@ GAME = 4
 DAILY_LIFE = 5
 FOOD = 6
 CARTON = 7
-
-
-

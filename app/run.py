@@ -209,7 +209,7 @@ def release():
         title = None
         content = None
         image = None
-        _plate = None
+        plate_id = None
         sort = None
         json_data = json.loads(request.get_data(), strict=False)
         if 'token' in json_data.keys():
@@ -228,8 +228,8 @@ def release():
             content = json_data['content']
         else:
             error = 'content is necessary'
-        if 'plate' in json_data.keys():
-            _plate = json_data['plate']
+        if 'plate_id' in json_data.keys():
+            plate_id = json_data['plate']
         else:
             error = 'plate is necessary'
         if 'sort' in json_data.keys():
@@ -244,7 +244,7 @@ def release():
         else:
             image = '[]'
 
-        if title is None or content is None or uid is None or _plate is None or token is None:
+        if title is None or content is None or uid is None or plate_id is None or token is None:
             response = Response(message=error, code='0', dateline=long(time.time()*1000))
             return json.dumps(response, default=lambda o: o.__dict__)
         else:
@@ -254,8 +254,10 @@ def release():
                     response = Response(message='没有登录', code='0', dateline=long(time.time()*1000))
                     return json.dumps(response, default=lambda o: o.__dict__)
                 else:
+                    if db_session.query(Plate).filter(Plate.id == plate_id).scalar() is not None:
+                        _plate = db_session.query(Plate).filter(Plate.id == plate_id).one()
                     entry = Entries(title=title, content=content, image=image, time=long(time.time()*1000),
-                                    uid=uid, plate=_plate, sort=sort, user=user)
+                                    uid=uid, plate_id=plate_id, sort=sort, user=user, plate=_plate)
                     db_session.add(entry)
                     db_session.commit()
                     response = Response(data=entry.to_json(), message='发布成功',
@@ -296,6 +298,9 @@ def recommend():
         if db_session.query(User).filter(User.id == entry.uid).scalar() is not None:
             user = db_session.query(User).filter(User.id == entry.uid).one()
             entry.set_user(user=user)
+        if db_session.query(Plate).filter(Plate.id == entry.plate_id).scalar() is not None:
+            _plate = db_session.query(Plate).filter(Plate.id == entry.plate_id).one()
+            entry.set_plate(plate=_plate)
     db_session.commit()
 
     for i in range(len(entry_list)):
@@ -360,6 +365,9 @@ def user_release():
         if db_session.query(User).filter(User.id == entry.uid).scalar() is not None:
             user = db_session.query(User).filter(User.id == entry.uid).one()
             entry.set_user(user=user)
+        if db_session.query(Plate).filter(Plate.id == entry.plate_id).scalar() is not None:
+            _plate = db_session.query(Plate).filter(Plate.id == entry.plate_id).one()
+            entry.set_plate(plate=_plate)
     db_session.commit()
 
     for i in range(len(entry_list)):
@@ -392,6 +400,9 @@ def all_plate_entries():
         if db_session.query(User).filter(User.id == entry.uid).scalar() is not None:
             user = db_session.query(User).filter(User.id == entry.uid).one()
             entry.set_user(user=user)
+        if db_session.query(Plate).filter(Plate.id == entry.plate_id).scalar() is not None:
+            _plate = db_session.query(Plate).filter(Plate.id == entry.plate_id).one()
+            entry.set_plate(plate=_plate)
     db_session.commit()
 
     for i in range(len(entry_list)):
