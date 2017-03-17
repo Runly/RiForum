@@ -132,6 +132,44 @@ def login():
     return json.dumps(response, default=lambda o: o.__dict__)
 
 
+@app.route('/user/logout', methods=['POST'])
+def logout():
+    uid = None
+    token = None
+    if request.method != 'POST':
+        response = Response(message='use POST method', code='0', dateline=long(time.time() * 1000))
+        return json.dumps(response, default=lambda o: o.__dict__)
+
+    json_data = json.loads(request.get_data())
+    if 'uid' in json_data.keys():
+        uid = json_data['uid']
+    else:
+        error = 'uid is necessary'
+    if 'token' in json_data.keys():
+        token = json_data['token']
+    else:
+        error = 'token is necessary'
+
+    if uid is None or token is None:
+        response = Response(message=error, code='0', dateline=long(time.time() * 1000))
+        return json.dumps(response, default=lambda o: o.__dict__)
+
+    if db_session.query(User).filter(User.id == uid).scalar() is not None:
+        user = db_session.query(User).filter(User.id == uid).one()
+        if token != user.token:
+            response = Response(message='登录信息失效', code='0', dateline=long(time.time() * 1000))
+            return json.dumps(response, default=lambda o: o.__dict__)
+
+        token = to_md5(user.password + str(long(time.time() * 1000)))
+        user.token = token
+        db_session.commit()
+        response = Response(code='1', message='登出成功', dateline=long(time.time() * 1000))
+        return json.dumps(response, default=lambda o: o.__dict__)
+    else:
+        response = Response(code='0', message='用户不存在', dateline=long(time.time() * 1000))
+        return json.dumps(response, default=lambda o: o.__dict__)
+
+
 @app.route('/user/modify_info', methods=['POST'])
 def modify_info():
     uid = None
