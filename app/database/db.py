@@ -33,10 +33,11 @@ class User(Base):
     experience = Column(Integer, nullable=False)  # 用户经验
     time = Column(Integer, nullable=False)  # 注册时间
     permissions = Column(Integer, nullable=False)  # 权限等级
+    entry_number = Column(Integer)  # 发帖数
     token = Column(String(32))
 
     def __init__(self, name='', email='', phone='', password='', avatar='', gender=0,
-                 birth='', user_from='', grade=1, exp=0, time=0, permissions=USER, token=''):
+                 birth='', user_from='', grade=1, exp=0, time=0, permissions=USER, entry_number=0, token=''):
         self.name = name
         self.email = email
         self.phone = phone
@@ -49,6 +50,7 @@ class User(Base):
         self.experience = exp
         self.time = time
         self.permissions = permissions
+        self.entry_number = entry_number
         self.token = token
 
     def to_json(self):
@@ -66,6 +68,7 @@ class User(Base):
             'experience': self.experience,
             'time': self.time,
             'permissions': self.permissions,
+            'entry_number': self.entry_number,
             'token': self.token
         }
 
