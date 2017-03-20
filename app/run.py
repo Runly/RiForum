@@ -4,7 +4,7 @@ import json
 import time
 from utils.md5 import to_md5
 from flask import Flask, request
-from database.db import User, init_db, DbSession, Response, Entries, Plate, Comment
+from database.db import User, init_db, DbSession, Response, Entries, Plate, Comment, SearchResponse
 from utils.text_util import str_is_empty
 from utils.qiniu_token import get_qiniu_token
 from utils.constant import *
@@ -498,6 +498,40 @@ def plate_entries():
         entry_list[i] = entry_list[i].to_json()
 
     response = Response(entry_list, '1', 'successfully', long(time.time() * 1000))
+    return json.dumps(response, default=lambda o: o.__dict__)
+
+
+@app.route('/entry/search', methods=['POST'])
+def search():
+    content = None
+    json_data = json.loads(request.get_data())
+    if 'content' in json_data.keys():
+        content = json_data['content']
+    else:
+        response = Response(message='content is necessary', code='0', dateline=long(time.time()*1000))
+        return json.dumps(response, default=lambda o: o.__dict__)
+
+    if str_is_empty(content):
+        response = Response(data=[], message='successfully', code='1', dateline=long(time.time() * 1000))
+        return json.dumps(response, default=lambda o: o.__dict__)
+
+    user_list = db_session.query(User).filter(User.name.like("%" + content + "%")).all()
+    for i in range(len(user_list)):
+        user_list[i] = user_list[i].to_json()
+
+    entry_list = db_session.query(Entries).filter(Entries.title.like("%" + content + "%")).all()
+    for entry in entry_list:
+        if db_session.query(User).filter(User.id == entry.uid).scalar() is not None:
+            user = db_session.query(User).filter(User.id == entry.uid).one()
+            entry.set_user(user=user)
+        if db_session.query(Plate).filter(Plate.id == entry.plate_id).scalar() is not None:
+            _plate = db_session.query(Plate).filter(Plate.id == entry.plate_id).one()
+            entry.set_plate(plate=_plate)
+
+    for i in range(len(entry_list)):
+        entry_list[i] = entry_list[i].to_json()
+
+    response = SearchResponse(user_list=user_list, entry_list=entry_list, code='1', message='successfully', dateline=long(time.time()*1000))
     return json.dumps(response, default=lambda o: o.__dict__)
 
 

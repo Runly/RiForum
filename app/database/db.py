@@ -269,5 +269,14 @@ class Response(object):
         self.dateline = dateline
 
 
+class SearchResponse(object):
+    def __init__(self, user_list, entry_list=[], code='', message='', dateline=0):
+        self.user_list = user_list
+        self.entry_list = entry_list
+        self.code = code
+        self.message = message
+        self.dateline = dateline
+
+
 engine = create_engine('sqlite:////home/ranly/riforum_db/riforum.db')
 DbSession = sessionmaker(bind=engine)
