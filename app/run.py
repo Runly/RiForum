@@ -297,6 +297,7 @@ def release():
                     entry = Entries(title=title, content=content, image=image, time=long(time.time() * 1000),
                                     uid=uid, plate_id=plate_id, sort=sort, user=user, plate=_plate)
                     db_session.add(entry)
+                    user.entry_number += 1
                     db_session.commit()
                     response = Response(data=entry.to_json(), message='发布成功',
                                         code='1', dateline=long(time.time() * 1000))
