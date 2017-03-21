@@ -4,7 +4,7 @@ import json
 import time
 from utils.md5 import to_md5
 from flask import Flask, request
-from database.db import User, init_db, DbSession, Response, Entries, Plate, Comment, SearchResponse
+from database.db import *
 from utils.text_util import str_is_empty
 from utils.qiniu_token import get_qiniu_token
 from utils.constant import *
@@ -467,13 +467,15 @@ def plate_entries():
         error = 'page is necessary'
 
     if plate_id is None or page is None:
-        response = Response([], '0', error, long(time.time() * 1000))
+        response = PlateEntriesResponse(0, [], '0', error, long(time.time() * 1000))
         return json.dumps(response, lambda o: o.__dict__)
 
     if db_session.query(Plate).filter(Plate.id == plate_id).scalar() is None:
         error = '该板块不存在'
-        response = Response([], '0', error, long(time.time() * 1000))
+        response = PlateEntriesResponse(0, [], '0', error, long(time.time() * 1000))
         return json.dumps(response, lambda o: o.__dict__)
+
+    entry_number = db_session.query(Entries).filter(Entries.plate_id == plate_id).count()
 
     entry_list = db_session.query(Entries).filter(Entries.plate_id == plate_id) \
         .filter(Entries.time < page).order_by(-Entries.time).limit(20).all()
@@ -481,7 +483,7 @@ def plate_entries():
     if len(entry_list) == 0:
         code = '1'
         message = 'end'
-        response = Response(entry_list, code, message, long(time.time() * 1000))
+        response = PlateEntriesResponse(0, entry_list, code, message, long(time.time() * 1000))
         return json.dumps(response, default=lambda o: o.__dict__)
 
     for entry in entry_list:
@@ -498,7 +500,7 @@ def plate_entries():
     for i in range(len(entry_list)):
         entry_list[i] = entry_list[i].to_json()
 
-    response = Response(entry_list, '1', 'successfully', long(time.time() * 1000))
+    response = PlateEntriesResponse(entry_number, entry_list, '1', 'successfully', long(time.time() * 1000))
     return json.dumps(response, default=lambda o: o.__dict__)
 
 

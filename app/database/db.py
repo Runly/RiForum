@@ -273,9 +273,18 @@ class Response(object):
 
 
 class SearchResponse(object):
-    def __init__(self, user_list, entry_list=[], code='', message='', dateline=0):
+    def __init__(self, user_list=[], entry_list=[], code='', message='', dateline=0):
         self.user_list = user_list
         self.entry_list = entry_list
+        self.code = code
+        self.message = message
+        self.dateline = dateline
+
+
+class PlateEntriesResponse(object):
+    def __init__(self, entry_number, data=[], code='', message='', dateline=0):
+        self.entry_number = entry_number
+        self.data = data
         self.code = code
         self.message = message
         self.dateline = dateline
