@@ -29,7 +29,3 @@ CARTON = 7
 ENTRY_NORMAL = 1
 ENTRY_RECOMMEND = 2
 ENTRY_BANNER = 3
-
-
-# 搜索推荐
-search_recommend_list = ['乐天', '主播炸了', '阴阳师', '暴走大事件', '三生三世十里桃花','主播真会玩', '斗破苍穹', '哈哈哈']

@@ -484,7 +484,7 @@ def plate_entries():
     if len(entry_list) == 0:
         code = '1'
         message = 'end'
-        response = PlateEntriesResponse(0, entry_list, code, message, long(time.time() * 1000))
+        response = PlateEntriesResponse(entry_number, entry_list, code, message, long(time.time() * 1000))
         return json.dumps(response, default=lambda o: o.__dict__)
 
     for entry in entry_list:
@@ -567,7 +567,26 @@ def banner_entries():
 
 @app.route('/entry/search_recommend', methods=['GET'])
 def search_recommend():
-    response = Response(data=search_recommend_list, message='successfully', code='1', dateline=long(time.time()*1000))
+    entry_list = db_session.query(Entries).filter(Entries.comment_num >= 1).limit(11).all()
+
+    if len(entry_list) == 0:
+        code = '1'
+        message = 'no banner'
+        response = Response(entry_list, code, message, long(time.time() * 1000))
+        return json.dumps(response, default=lambda o: o.__dict__)
+
+    for entry in entry_list:
+        if db_session.query(User).filter(User.id == entry.uid).scalar() is not None:
+            user = db_session.query(User).filter(User.id == entry.uid).one()
+            entry.set_user(user=user)
+        if db_session.query(Plate).filter(Plate.id == entry.plate_id).scalar() is not None:
+            _plate = db_session.query(Plate).filter(Plate.id == entry.plate_id).one()
+            entry.set_plate(plate=_plate)
+
+    for i in range(len(entry_list)):
+        entry_list[i] = entry_list[i].to_json()
+
+    response = Response(entry_list, '1', 'successfully', long(time.time() * 1000))
     return json.dumps(response, default=lambda o: o.__dict__)
 
 
