@@ -1,13 +1,14 @@
 # coding=UTF-8
 
-import json
 import time
-from utils.md5 import to_md5
+
 from flask import Flask, request
+
 from database.db import *
-from utils.text_util import str_is_empty
-from utils.qiniu_token import get_qiniu_token
 from utils.constant import *
+from utils.md5 import to_md5
+from utils.qiniu_token import get_qiniu_token
+from utils.text_util import str_is_empty
 
 app = Flask(__name__)
 app.config.from_object('config')
@@ -561,6 +562,12 @@ def banner_entries():
         entry_list[i] = entry_list[i].to_json()
 
     response = Response(entry_list, '1', 'successfully', long(time.time() * 1000))
+    return json.dumps(response, default=lambda o: o.__dict__)
+
+
+@app.route('/entry/search_recommend', methods=['GET'])
+def search_recommend():
+    response = Response(data=search_recommend_list, message='successfully', code='1', dateline=long(time.time()*1000))
     return json.dumps(response, default=lambda o: o.__dict__)
 
 
