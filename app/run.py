@@ -523,7 +523,7 @@ def search():
     for i in range(len(user_list)):
         user_list[i] = user_list[i].to_json()
 
-    entry_list = db_session.query(Entries).filter(Entries.title.like("%" + content + "%")).all()
+    entry_list = db_session.query(Entries).filter(Entries.title.like("%" + content + "%")).limit(30).all()
     for entry in entry_list:
         if db_session.query(User).filter(User.id == entry.uid).scalar() is not None:
             user = db_session.query(User).filter(User.id == entry.uid).one()
