@@ -239,6 +239,30 @@ def modify_avatar():
         return json.dumps(response, default=lambda o: o.__dict__)
 
 
+@app.route('/user/modify_password', methods=['POST'])
+def modify_password():
+    keys = ['uid', 'old_password', 'new_password']
+    json_data = json.loads(request.get_data())
+    for key in keys:
+        if key not in json_data.keys():
+            response = Response({}, '0', key + ' is necessary.', long(time.time() * 1000))
+            return json.dumps(response, default=lambda o: o.__dict__)
+
+        if json_data[key] is None:
+            response = Response({}, '0', key + ' can not be None.', long(time.time()*1000))
+            return json.dumps(response, default=lambda o: o.__dict__)
+
+    user = db_session.query(User).filter(User.id == json_data['uid']).one()
+    if user.password != json_data['old_password']:
+        response = Response({}, '0', '原密码错误', long(time.time() * 1000))
+        return json.dumps(response, default=lambda o: o.__dict__)
+
+    user.password = json_data['new_password']
+    db_session.commit()
+    response = Response({}, '1', 'successfully', long(time.time() * 1000))
+    return json.dumps(response, default=lambda o: o.__dict__)
+
+
 @app.route('/entry/release', methods=['POST'])
 def release():
     error = None
@@ -329,6 +353,7 @@ def delete():
 
     db_session.query(Comment).filter(Comment.entry_id == json_data['entry_id']).delete()
     db_session.delete(entry)
+    user.entry_number -= 1
     db_session.commit()
     response = Response({}, '1', 'delete successfully.', long(time.time() * 1000))
     return json.dumps(response, default=lambda o: o.__dict__)
