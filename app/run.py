@@ -403,14 +403,16 @@ def recommend():
 
 @app.route('/entry/plate', methods=['GET'])
 def plate():
+    # 从"板块表"中查询到所有的板块信息
     plate_list = db_session.query(Plate).all()
     if len(plate_list) > 0:
         json_list = []
+        # 将"板块列表"序列化为JSON格式
         for p in plate_list:
             json_list.append(p.to_json())
 
-        response = Response(data=json_list, code='1',
-                            message='successfully', dateline=long(time.time() * 1000))
+        response = Response(data=json_list, code='1', message='successfully', dateline=long(time.time() * 1000))
+        # 将序列化后的结果返回给客户端
         return json.dumps(response, default=lambda o: o.__dict__)
     else:
         response = Response(data=[], code='1', message='table empty', dateline=long(time.time() * 1000))
@@ -786,7 +788,7 @@ def qiniu_token():
         if db_session.query(User).filter(User.id == uid).scalar() is not None:
             user = db_session.query(User).filter(User.id == uid).one()
             if user.token == token:
-                key = str(uid) + '_' + str(long(time.time())) + '.jpg'
+                key = str(uid) + '_' + str(long(time.time() * 1000)) + '.jpg'
                 data = {'token': get_qiniu_token(key), 'key': key, 'base_url': QINIU_BASE_URL}
                 response = Response(data=data, message='successful',
                                     code='1', dateline=long(time.time() * 1000))
