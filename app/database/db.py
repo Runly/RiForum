@@ -291,4 +291,5 @@ class PlateEntriesResponse(object):
 
 
 engine = create_engine('sqlite:////home/ranly/riforum_db/riforum.db')
+# engine = create_engine('sqlite:////Users/ranly/riforum_db/riforum.db')
 DbSession = sessionmaker(bind=engine)
