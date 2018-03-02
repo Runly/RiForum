@@ -1,2 +1,2 @@
 # RiForum
-A forum system's server write by python
+API for RiForum-Andriod
